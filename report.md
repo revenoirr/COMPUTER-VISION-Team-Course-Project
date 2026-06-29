@@ -4,6 +4,9 @@
 
 ### Theme 15 – Face Region Analysis
 
+**Team:** Alexandra Nerush (Lead CV Engineer), Sofya Asinskaya (Image Processing Specialist), Fiodar Viachorka (Morphology & Report Lead)
+**Report author:** Fiodar Viachorka. Individual section attributions are noted under each heading.
+
 ---
 
 # Abstract
@@ -18,6 +21,8 @@ The system processes input images, detects one or multiple faces, extracts facia
 
 # 1. Introduction
 
+*Section author: Fiodar Viachorka.*
+
 Face mask detection is an important computer vision problem that became highly relevant during global public health events. Automatic mask detection systems can be used in airports, hospitals, educational institutions, transportation systems, and public facilities.
 
 The objective of this project is to build a complete computer vision application capable of analyzing facial regions and determining mask usage status based on visual information.
@@ -26,7 +31,35 @@ Unlike simple image classification approaches, this project implements all stage
 
 ---
 
-# 2. Project Objectives
+# 2. Team Roles & Task Division
+
+*Section author: Fiodar Viachorka.*
+
+The project was implemented by a team of three students. Each member owned specific pipeline stages and shared responsibilities according to the team-role structure defined in the project brief. A signed contribution statement is included as an appendix (see `CONTRIBUTORS.md` and `CONTRIBUTORS_signed.pdf`).
+
+## Team Members
+
+| Name | Role | Pipeline Ownership |
+|------|------|--------------------|
+| Alexandra Nerush | Lead CV Engineer | Detect + Decision, integration |
+| Sofya Asinskaya | Image Processing Specialist | Enhance + Segment |
+| Fiodar Viachorka | Morphology & Report Lead | Clean + Visualization, report, demo |
+
+## Task Division
+
+**Alexandra Nerush — Lead CV Engineer.** Implemented Stage 4 (feature detection) and Stage 5 (decision making). Designed the rule-based classifier and tuned its thresholds. Integrated all stages in `main.py` and verified the end-to-end pipeline on single-face and multi-person scenes.
+
+**Sofya Asinskaya — Image Processing Specialist.** Implemented Stage 1 (image enhancement: CLAHE, non-local-means denoising, gamma correction) and Stage 2 (face segmentation: DNN SSD detector with Haar Cascade fallback chain and ROI extraction). Configured detection parameters and validated face detection across diverse lighting and pose conditions.
+
+**Fiodar Viachorka — Morphology & Report Lead.** Implemented Stage 3 (cleaning: dual-color-space HSV + YCrCb skin masking, non-skin masking, morphological opening and closing) and the visualization module producing per-stage output images. Wrote this report, authored the project `README.md`, set up the repository structure, packaged dependencies (`requirements.txt`), and prepared the recorded team presentation.
+
+All three team members participated in code review, integration testing, threshold tuning discussions, and rehearsal of the final demonstration.
+
+---
+
+# 3. Project Objectives
+
+*Section author: Fiodar Viachorka.*
 
 The main objectives of the project are:
 
@@ -48,7 +81,9 @@ The system must classify every detected face into one of four categories:
 
 ---
 
-# 3. System Requirements
+# 4. System Requirements
+
+*Section author: Fiodar Viachorka.*
 
 The project requirements specify the following computer vision workflow:
 
@@ -72,7 +107,9 @@ Output:
 
 ---
 
-# 4. Technologies Used
+# 5. Technologies Used
+
+*Section author: Fiodar Viachorka.*
 
 The implementation was developed using Python and OpenCV.
 
@@ -99,6 +136,14 @@ Used for:
 * Numerical computations
 * Pixel statistics
 
+Flask (web demo)
+
+Used for:
+
+* Localhost HTTP server
+* File upload handling
+* Static result serving
+
 ### Face Detection Models
 
 #### Primary Detector
@@ -118,11 +163,15 @@ Used as a fallback mechanism when DNN detection fails.
 
 ---
 
-# 5. System Architecture
+# 6. System Architecture
 
-The developed system consists of five sequential stages.
+*Section authors: see individual stage credits below.*
+
+The developed system consists of five sequential stages, each implemented in its own Python module. Tunable thresholds and color ranges are centralized in `config.py`.
 
 ## Stage 1 – Image Enhancement
+
+*Stage author: Sofya Asinskaya.* Implemented in `enhance.py`.
 
 The enhancement stage improves image quality before analysis.
 
@@ -167,6 +216,8 @@ Enhanced image ready for analysis.
 
 ## Stage 2 – Face Segmentation
 
+*Stage author: Sofya Asinskaya.* Implemented in `segment.py`.
+
 The segmentation stage identifies face regions.
 
 ### Deep Neural Network Face Detector
@@ -196,6 +247,10 @@ Available cascades:
 
 This increases robustness and reliability.
 
+### Minimum Face Size Filter
+
+Both detectors are followed by a relative-size filter: any detection smaller than 5% of the image's smaller side is dropped. This eliminates tiny false positives (e.g. background patterns, eye-only sub-detections on close-up shots) before ROI extraction.
+
 ### Multi-Face Support
 
 The detector processes all detected faces independently.
@@ -219,6 +274,8 @@ Each face is analyzed separately.
 ---
 
 ## Stage 3 – Cleaning
+
+*Stage author: Fiodar Viachorka.* Implemented in `clean.py`.
 
 The cleaning stage removes noise from segmented regions.
 
@@ -268,6 +325,8 @@ Benefits:
 
 ## Stage 4 – Feature Detection
 
+*Stage author: Alexandra Nerush.* Implemented in `detect.py`.
+
 The detection stage extracts numerical measurements.
 
 For every face the system calculates:
@@ -302,6 +361,8 @@ These values are used during classification.
 
 ## Stage 5 – Decision Making
 
+*Stage author: Alexandra Nerush.* Implemented in `decide.py`.
+
 The final classification is performed using a rule-based classifier.
 
 ### MASK
@@ -310,7 +371,7 @@ The face is classified as MASK when:
 
 * Lower face skin visibility is extremely low
 * Nose and mouth areas appear covered
-* Lower region contains mostly non-skin pixels
+* Lower region contains mostly non-skin pixels, **or** the lower face is essentially skin-free with a large upper-vs-lower drop (handles desaturated surgical masks that do not register as non-skin)
 
 Output color:
 
@@ -362,7 +423,9 @@ Possible reasons:
 
 ---
 
-# 6. Output Generation
+# 7. Output Generation
+
+*Section author: Fiodar Viachorka.* Implemented in `visualize.py`.
 
 For every image the system automatically generates:
 
@@ -393,7 +456,9 @@ Final image containing:
 
 ---
 
-# 7. Experimental Results
+# 8. Experimental Results
+
+*Section authors: all team members (joint testing).*
 
 The system was tested using three categories of images.
 
@@ -468,7 +533,9 @@ This demonstrates that the system applies the classification rules per-face, so 
 
 ---
 
-# 8. Advantages of the Proposed Solution
+# 9. Advantages of the Proposed Solution
+
+*Section author: Fiodar Viachorka.*
 
 The developed system provides several advantages.
 
@@ -500,9 +567,15 @@ Every processing stage can be inspected and verified.
 
 Runs efficiently on standard hardware.
 
+### Interactive Web Demo
+
+A Flask-based localhost UI lets reviewers upload arbitrary images and view all five pipeline stages plus per-face decision metrics in the browser. No build step required.
+
 ---
 
-# 9. Limitations
+# 10. Limitations
+
+*Section author: Fiodar Viachorka, with input from the team.*
 
 Several limitations remain.
 
@@ -528,7 +601,9 @@ Scarves, hands, or other objects can interfere with analysis.
 
 ---
 
-# 10. Future Improvements
+# 11. Future Improvements
+
+*Section author: Fiodar Viachorka, with input from the team.*
 
 Potential future improvements include:
 
@@ -542,7 +617,9 @@ Potential future improvements include:
 
 ---
 
-# 11. Conclusion
+# 12. Conclusion
+
+*Section author: Fiodar Viachorka.*
 
 A complete computer vision system for face mask detection was successfully developed.
 
