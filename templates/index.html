@@ -1,0 +1,318 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Face Region Analysis — CV Pipeline Demo</title>
+<style>
+:root {
+  --bg: #0f1419;
+  --panel: #1a2028;
+  --border: #2a3441;
+  --text: #e2e8ed;
+  --muted: #8a96a3;
+  --accent: #4fb3ff;
+  --red: #f87171;
+}
+* { box-sizing: border-box; }
+body {
+  margin: 0;
+  font-family: -apple-system, "Segoe UI", system-ui, sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  line-height: 1.5;
+}
+.wrap { max-width: 1100px; margin: 0 auto; padding: 32px 24px 64px; }
+
+header { margin-bottom: 32px; }
+h1 { margin: 0 0 4px; font-size: 28px; font-weight: 600; }
+.subtitle { color: var(--muted); font-size: 15px; font-family: Consolas, monospace; }
+
+.dropzone {
+  display: block;
+  border: 2px dashed var(--border);
+  border-radius: 12px;
+  padding: 48px 24px;
+  text-align: center;
+  cursor: pointer;
+  transition: all 0.15s;
+  background: rgba(255,255,255,0.01);
+}
+.dropzone:hover, .dropzone.drag {
+  border-color: var(--accent);
+  background: var(--panel);
+}
+.dropzone input { display: none; }
+.dropzone-icon { font-size: 32px; opacity: 0.6; margin-bottom: 8px; }
+.dropzone p { margin: 4px 0; }
+.dropzone .hint { color: var(--muted); font-size: 13px; }
+
+.status {
+  margin: 24px 0;
+  padding: 14px 18px;
+  background: var(--panel);
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  display: none;
+}
+.status.show { display: block; }
+.status.error { border-color: var(--red); color: var(--red); }
+.spinner {
+  display: inline-block;
+  width: 14px; height: 14px;
+  border: 2px solid var(--accent);
+  border-top-color: transparent;
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+  margin-right: 10px;
+  vertical-align: middle;
+}
+.status.error .spinner { display: none; }
+@keyframes spin { to { transform: rotate(360deg); } }
+
+.results { display: none; }
+.results.show { display: block; }
+.section-title { margin: 32px 0 12px; font-size: 16px; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: 0.5px; }
+
+.stages {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 12px;
+}
+.stage {
+  background: var(--panel);
+  border-radius: 8px;
+  overflow: hidden;
+  border: 1px solid var(--border);
+}
+.stage img {
+  width: 100%;
+  height: 140px;
+  object-fit: cover;
+  display: block;
+  cursor: zoom-in;
+  background: #000;
+}
+.stage-label {
+  padding: 8px 10px;
+  font-size: 12px;
+  color: var(--muted);
+  text-align: center;
+  font-family: Consolas, monospace;
+}
+
+.detection {
+  margin-top: 12px;
+  background: var(--panel);
+  border-radius: 8px;
+  padding: 16px;
+  border: 1px solid var(--border);
+}
+.detection img {
+  width: 100%;
+  max-height: 520px;
+  object-fit: contain;
+  border-radius: 6px;
+  background: #000;
+  cursor: zoom-in;
+}
+
+.faces { margin-top: 14px; display: flex; flex-direction: column; gap: 8px; }
+.face {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 12px 14px;
+  background: var(--bg);
+  border-radius: 6px;
+  border-left: 4px solid;
+  flex-wrap: wrap;
+}
+.face-id { font-weight: 600; min-width: 80px; }
+.face-label { font-weight: 700; min-width: 130px; }
+.face-metrics { color: var(--muted); font-size: 13px; font-family: Consolas, monospace; }
+
+.not-detected {
+  color: var(--red);
+  background: rgba(248,113,113,0.08);
+  padding: 14px 18px;
+  border-radius: 6px;
+  border-left: 4px solid var(--red);
+  font-weight: 600;
+}
+
+@media (max-width: 720px) {
+  .stages { grid-template-columns: repeat(2, 1fr); }
+  .stage img { height: 120px; }
+}
+
+.lightbox {
+  display: none;
+  position: fixed; inset: 0;
+  background: rgba(0,0,0,0.92);
+  z-index: 100;
+  align-items: center;
+  justify-content: center;
+  cursor: zoom-out;
+  padding: 20px;
+}
+.lightbox.show { display: flex; }
+.lightbox img { max-width: 100%; max-height: 100%; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>Face Region Analysis</h1>
+    <div class="subtitle">image → enhance → segment → clean → detect → decide</div>
+  </header>
+
+  <label class="dropzone" id="dropzone">
+    <input type="file" id="file" accept="image/jpeg,image/png,image/bmp">
+    <div class="dropzone-icon">⬆</div>
+    <p><strong>Drag an image here</strong> or click to browse</p>
+    <p class="hint">JPG · PNG · BMP — up to 16 MB</p>
+  </label>
+
+  <div class="status" id="status">
+    <span class="spinner"></span><span id="status-text">Processing…</span>
+  </div>
+
+  <div class="results" id="results">
+    <h2 class="section-title">Pipeline stages</h2>
+    <div class="stages" id="stages"></div>
+
+    <h2 class="section-title">Final detection</h2>
+    <div class="detection">
+      <img id="detection-img" alt="">
+      <div class="faces" id="faces"></div>
+    </div>
+  </div>
+</div>
+
+<div class="lightbox" id="lightbox">
+  <img id="lightbox-img" alt="">
+</div>
+
+<script>
+const dropzone = document.getElementById('dropzone');
+const fileInput = document.getElementById('file');
+const statusEl = document.getElementById('status');
+const statusText = document.getElementById('status-text');
+const results = document.getElementById('results');
+const stagesEl = document.getElementById('stages');
+const detectionImg = document.getElementById('detection-img');
+const facesEl = document.getElementById('faces');
+const lightbox = document.getElementById('lightbox');
+const lightboxImg = document.getElementById('lightbox-img');
+
+const STAGE_LABELS = {
+  original: '1 · Original',
+  enhanced: '2 · Enhanced',
+  segmentation: '3 · Segmentation',
+  cleaned: '4 · Cleaned',
+  detection: '5 · Detection',
+};
+
+['dragenter', 'dragover'].forEach(e => {
+  dropzone.addEventListener(e, ev => { ev.preventDefault(); dropzone.classList.add('drag'); });
+});
+['dragleave', 'drop'].forEach(e => {
+  dropzone.addEventListener(e, ev => { ev.preventDefault(); dropzone.classList.remove('drag'); });
+});
+dropzone.addEventListener('drop', ev => {
+  if (ev.dataTransfer.files.length) upload(ev.dataTransfer.files[0]);
+});
+fileInput.addEventListener('change', () => {
+  if (fileInput.files.length) upload(fileInput.files[0]);
+});
+
+async function upload(file) {
+  showStatus('Running 5 pipeline stages on ' + file.name + ' …', false);
+  results.classList.remove('show');
+
+  const form = new FormData();
+  form.append('image', file);
+
+  try {
+    const res = await fetch('/analyze', { method: 'POST', body: form });
+    const data = await res.json();
+
+    if (data.status !== 'ok') {
+      showStatus('Error: ' + (data.message || 'Unknown error'), true);
+      return;
+    }
+
+    render(data);
+    hideStatus();
+  } catch (err) {
+    showStatus('Network error: ' + err.message, true);
+  }
+}
+
+function render(data) {
+  const t = '?t=' + Date.now();
+
+  stagesEl.innerHTML = '';
+  for (const key of ['original', 'enhanced', 'segmentation', 'cleaned', 'detection']) {
+    const url = data.stages[key] + t;
+    const div = document.createElement('div');
+    div.className = 'stage';
+    const img = document.createElement('img');
+    img.src = url;
+    img.alt = STAGE_LABELS[key];
+    img.addEventListener('click', () => openLightbox(url));
+    const label = document.createElement('div');
+    label.className = 'stage-label';
+    label.textContent = STAGE_LABELS[key];
+    div.appendChild(img);
+    div.appendChild(label);
+    stagesEl.appendChild(div);
+  }
+
+  const detectionUrl = data.stages.detection + t;
+  detectionImg.src = detectionUrl;
+  detectionImg.onclick = () => openLightbox(detectionUrl);
+
+  facesEl.innerHTML = '';
+  if (data.faces.length === 0) {
+    const div = document.createElement('div');
+    div.className = 'not-detected';
+    div.textContent = 'FACE NOT DETECTED — image may be unclear, rotated, or low quality.';
+    facesEl.appendChild(div);
+  } else {
+    for (const f of data.faces) {
+      const div = document.createElement('div');
+      div.className = 'face';
+      div.style.borderLeftColor = f.color;
+      div.innerHTML = `
+        <div class="face-id">Person ${f.face_id}</div>
+        <div class="face-label" style="color:${f.color}">${f.label}</div>
+        <div class="face-metrics">skin=${f.skin_ratio} · upper=${f.upper_skin_ratio} · lower=${f.lower_skin_ratio} · non_skin=${f.non_skin_ratio}</div>
+      `;
+      facesEl.appendChild(div);
+    }
+  }
+
+  results.classList.add('show');
+}
+
+function showStatus(msg, isError) {
+  statusText.textContent = msg;
+  statusEl.classList.toggle('error', isError);
+  statusEl.classList.add('show');
+}
+function hideStatus() {
+  statusEl.classList.remove('show');
+}
+function openLightbox(src) {
+  lightboxImg.src = src;
+  lightbox.classList.add('show');
+}
+lightbox.addEventListener('click', () => lightbox.classList.remove('show'));
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape') lightbox.classList.remove('show');
+});
+</script>
+</body>
+</html>

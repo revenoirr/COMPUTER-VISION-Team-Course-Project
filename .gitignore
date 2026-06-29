@@ -18,6 +18,7 @@ dist/
 *.egg
 
 output/
+uploads/
 
 *.caffemodel
 *.prototxt
@@ -27,5 +28,7 @@ output/
 *.swp
 *.swo
 .DS_Store
+
+demo_script.md
 
 *.log

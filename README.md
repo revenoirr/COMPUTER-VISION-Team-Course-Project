@@ -41,6 +41,8 @@ For the higher-accuracy DNN detector, place the following files in the project r
 
 ## Usage
 
+### Command line
+
 ```bash
 python main.py photo.jpg
 python main.py image1.jpg image2.png image3.jpg
@@ -55,6 +57,14 @@ For every input image the pipeline writes five files to `./output/`:
 - `<name>_5_detection.jpg` — final image with bounding boxes and labels
 
 A summary with per-person labels is printed to the console.
+
+### Web demo (localhost)
+
+```bash
+python app.py
+```
+
+Open [http://127.0.0.1:5000](http://127.0.0.1:5000) in a browser, drag an image onto the page, and the UI will display all five pipeline stages and the per-face decision. Backed by Flask; no build step required.
 
 ---
 
