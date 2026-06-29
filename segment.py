@@ -8,6 +8,12 @@ import numpy as np
 import config
 
 
+def _filter_by_relative_size(faces: list, image_shape: tuple) -> list:
+    img_h, img_w = image_shape[:2]
+    min_dim = min(img_h, img_w) * config.MIN_FACE_FRAC
+    return [(x, y, w, h) for (x, y, w, h) in faces if w >= min_dim and h >= min_dim]
+
+
 def _detect_with_dnn(enhanced: np.ndarray) -> list:
     if not (os.path.exists(config.DNN_PROTO_PATH) and os.path.exists(config.DNN_MODEL_PATH)):
         return []
@@ -70,9 +76,14 @@ def _detect_with_haar(enhanced: np.ndarray) -> list:
             minSize=config.HAAR_MIN_SIZE,
         )
 
-        if len(detected) > 0:
+        valid = _filter_by_relative_size(
+            [tuple(rect) for rect in detected],
+            enhanced.shape,
+        )
+
+        if valid:
             print(f"  Face detector used: {cascade_name}")
-            return [tuple(rect) for rect in detected]
+            return valid
 
     return []
 
@@ -99,6 +110,7 @@ def _extract_roi(enhanced: np.ndarray, face_rect: tuple) -> tuple:
 
 def segment(enhanced: np.ndarray) -> list:
     face_rects = _detect_with_dnn(enhanced)
+    face_rects = _filter_by_relative_size(face_rects, enhanced.shape)
 
     if not face_rects:
         face_rects = _detect_with_haar(enhanced)

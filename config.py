@@ -32,6 +32,11 @@ HAAR_SCALE_FACTOR = 1.04
 HAAR_MIN_NEIGHBORS = 3
 HAAR_MIN_SIZE = (25, 25)
 
+# Detected face must occupy at least this fraction of the image's smaller side.
+# Drops tiny false positives (eyes, mask edges, background patterns) that
+# cascade classifiers sometimes return on close-up shots.
+MIN_FACE_FRAC = 0.05
+
 # Face ROI as fraction of detected face bounding box
 ROI_LEFT_FRAC = 0.10
 ROI_RIGHT_FRAC = 0.90
@@ -60,6 +65,12 @@ MORPH_CLOSE_ITER = 2
 # ---------- Stage 5: Decide thresholds ----------
 MASK_SKIN_RATIO_MAX = 0.22
 MASK_LOWER_SKIN_RATIO_MAX = 0.18
+
+# Strong-MASK signal: very low lower-face skin + large upper-vs-lower drop.
+# Catches surgical / light-colored masks that are too desaturated to register
+# as non-skin but clearly cover the mouth and nose.
+MASK_LOWER_NEAR_ZERO = 0.05
+MASK_SKIN_DROP_STRONG = 0.30
 
 PARTIAL_LOWER_NON_SKIN_MIN = 0.35
 PARTIAL_SKIN_DROP_MIN = 0.25

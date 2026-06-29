@@ -13,6 +13,10 @@ def _classify(skin_ratio, upper_skin_ratio, lower_skin_ratio,
             and lower_skin_ratio < config.MASK_LOWER_SKIN_RATIO_MAX):
         return "MASK", config.COLOR_MASK
 
+    if (lower_skin_ratio < config.MASK_LOWER_NEAR_ZERO
+            and skin_drop > config.MASK_SKIN_DROP_STRONG):
+        return "MASK", config.COLOR_MASK
+
     if mask_on_lower and skin_drop > config.PARTIAL_SKIN_DROP_MIN:
         return "PARTIAL MASK", config.COLOR_PARTIAL
 
